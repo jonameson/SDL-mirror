@@ -108,6 +108,39 @@
 
 #define SIZEOF_VOIDP 4
 
+#ifdef ANDROID_MINIMAL_BUILD_ENABLED
+
+/* Enable various audio drivers */
+#define SDL_AUDIO_DRIVER_ANDROID    1
+#define SDL_AUDIO_DRIVER_DUMMY  1
+
+/* Enable the stub joystick driver (src/joystick/dummy/\*.c) */
+#define SDL_JOYSTICK_DISABLED   1
+
+/* Enable the stub haptic driver (src/haptic/dummy/\*.c) */
+#define SDL_HAPTIC_DISABLED 1
+
+/* Enable various shared object loading systems */
+#define SDL_LOADSO_DLOPEN   1
+
+/* Enable various threading systems */
+#define SDL_THREAD_PTHREAD  1
+#define SDL_THREAD_PTHREAD_RECURSIVE_MUTEX  1
+
+/* Enable various timer systems */
+#define SDL_TIMER_UNIX  1
+
+/* Enable the dummy video driver (src/video/dummy/\*.c) */
+#define SDL_VIDEO_DRIVER_DUMMY 1
+
+/* Disable system power */
+#define SDL_POWER_DISABLED 1
+
+/* Enable the dummy filesystem driver (src/filesystem/dummy/\*.c) */
+#define SDL_FILESYSTEM_DUMMY  1
+
+#else // ANDROID_MINIMAL_BUILD_ENABLED
+
 /* Enable various audio drivers */
 #define SDL_AUDIO_DRIVER_ANDROID    1
 #define SDL_AUDIO_DRIVER_DUMMY  1
@@ -141,5 +174,7 @@
 
 /* Enable the filesystem driver */
 #define SDL_FILESYSTEM_ANDROID   1
+
+#endif
 
 #endif /* _SDL_config_android_h */

@@ -116,25 +116,46 @@ JNIEXPORT void JNICALL SDL_Android_Init(JNIEnv* mEnv, jclass cls)
 
     mActivityClass = (jclass)((*mEnv)->NewGlobalRef(mEnv, cls));
 
-    midGetNativeSurface = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "getNativeSurface","()Landroid/view/Surface;");
+#ifdef ANDROID_MINIMAL_BUILD_ENABLED
+    midGetNativeSurface = NULL;
+    midPollInputDevices = NULL;
+    
     midAudioInit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "audioInit", "(IZZI)I");
+                                              "audioInit", "(IZZI)I");
     midAudioWriteShortBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "audioWriteShortBuffer", "([S)V");
+                                                          "audioWriteShortBuffer", "([S)V");
     midAudioWriteByteBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "audioWriteByteBuffer", "([B)V");
+                                                         "audioWriteByteBuffer", "([B)V");
     midAudioQuit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "audioQuit", "()V");
-    midPollInputDevices = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "pollInputDevices", "()V");
-
+                                              "audioQuit", "()V");
+    
     bHasNewData = SDL_FALSE;
-
-    if (!midGetNativeSurface || !midAudioInit ||
-       !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioQuit || !midPollInputDevices) {
+    
+    if (!midAudioInit || !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioQuit) {
         __android_log_print(ANDROID_LOG_WARN, "SDL", "SDL: Couldn't locate Java callbacks, check that they're named and typed correctly");
     }
+#else
+    midGetNativeSurface = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                                     "getNativeSurface","()Landroid/view/Surface;");
+    midAudioInit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                              "audioInit", "(IZZI)I");
+    midAudioWriteShortBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                                          "audioWriteShortBuffer", "([S)V");
+    midAudioWriteByteBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                                         "audioWriteByteBuffer", "([B)V");
+    midAudioQuit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                              "audioQuit", "()V");
+    midPollInputDevices = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                                     "pollInputDevices", "()V");
+    
+    bHasNewData = SDL_FALSE;
+    
+    if (!midGetNativeSurface || !midAudioInit ||
+        !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioQuit || !midPollInputDevices) {
+        __android_log_print(ANDROID_LOG_WARN, "SDL", "SDL: Couldn't locate Java callbacks, check that they're named and typed correctly");
+    }
+#endif
+    
     __android_log_print(ANDROID_LOG_INFO, "SDL", "SDL_Android_Init() finished!");
 }
 
@@ -147,6 +168,8 @@ void Java_org_libsdl_app_SDLActivity_onNativeDropFile(
     SDL_SendDropFile(path);
     (*env)->ReleaseStringUTFChars(env, filename, path);
 }
+
+#ifdef SDL_VIDEO_DRIVER_ANDROID
 
 /* Resize */
 JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeResize(
@@ -209,7 +232,6 @@ JNIEXPORT jint JNICALL Java_org_libsdl_app_SDLActivity_nativeRemoveJoystick(
 {
     return Android_RemoveJoystick(device_id);
 }
-
 
 /* Surface Created */
 JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeSurfaceChanged(JNIEnv* env, jclass jcls)
@@ -405,6 +427,8 @@ JNIEXPORT jstring JNICALL Java_org_libsdl_app_SDLActivity_nativeGetHint(JNIEnv* 
 
     return result;
 }
+
+#endif // SDL_VIDEO_DRIVER_ANDROID
 
 /*******************************************************************************
              Functions called by SDL into Java
