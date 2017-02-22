@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -66,14 +66,11 @@
                                in the Windows SDK, v.10.0.10240.0 (Win 10's initial SDK)
                              */
 #else
-/* XAudio2 exists as of the March 2008 DirectX SDK 
-   The XAudio2 implementation available in the Windows 8 SDK targets Windows 8 and newer.
-   If you want to build SDL with XAudio2 support you should install the DirectX SDK.
+/* XAudio2 exists in the last DirectX SDK as well as the latest Windows SDK.
+   To enable XAudio2 support, you will need to add the location of your DirectX SDK headers to
+   the SDL projects additional include directories and then set SDL_XAUDIO2_HAS_SDK=1 as a
+   preprocessor define
  */
-/* Disable compiling in the XAudio2 support pending fixes to dynamically load the XAudio2
-   entry points so we can be robust to user configuration. Also needs to be fixed to build
-   with the Windows 10 SDK.
-*/
 #if 0 /* See comment above */
 #include <dxsdkver.h>
 #if (!defined(_DXSDK_BUILD_MAJOR) || (_DXSDK_BUILD_MAJOR < 1284))
@@ -81,8 +78,8 @@
 #else
 #  define SDL_XAUDIO2_HAS_SDK 1
 #endif
-#endif
 #endif /* 0 */
+#endif /* __GNUC__ */
 
 #ifdef SDL_XAUDIO2_HAS_SDK
 
@@ -198,7 +195,7 @@ XAUDIO2_PlayDevice(_THIS)
     IXAudio2SourceVoice *source = this->hidden->source;
     HRESULT result = S_OK;
 
-    if (!this->enabled) { /* shutting down? */
+    if (!SDL_AtomicGet(&this->enabled)) { /* shutting down? */
         return;
     }
 
@@ -229,64 +226,47 @@ XAUDIO2_PlayDevice(_THIS)
 static void
 XAUDIO2_WaitDevice(_THIS)
 {
-    if (this->enabled) {
+    if (SDL_AtomicGet(&this->enabled)) {
         SDL_SemWait(this->hidden->semaphore);
     }
 }
 
 static void
-XAUDIO2_WaitDone(_THIS)
+XAUDIO2_PrepareToClose(_THIS)
 {
     IXAudio2SourceVoice *source = this->hidden->source;
-    XAUDIO2_VOICE_STATE state;
-    SDL_assert(!this->enabled);  /* flag that stops playing. */
-    IXAudio2SourceVoice_Discontinuity(source);
-#if SDL_XAUDIO2_WIN8
-    IXAudio2SourceVoice_GetState(source, &state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
-#else
-    IXAudio2SourceVoice_GetState(source, &state);
-#endif
-    while (state.BuffersQueued > 0) {
-        SDL_SemWait(this->hidden->semaphore);
-#if SDL_XAUDIO2_WIN8
-        IXAudio2SourceVoice_GetState(source, &state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
-#else
-        IXAudio2SourceVoice_GetState(source, &state);
-#endif
+    if (source) {
+        IXAudio2SourceVoice_Discontinuity(source);
     }
 }
-
 
 static void
 XAUDIO2_CloseDevice(_THIS)
 {
-    if (this->hidden != NULL) {
-        IXAudio2 *ixa2 = this->hidden->ixa2;
-        IXAudio2SourceVoice *source = this->hidden->source;
-        IXAudio2MasteringVoice *mastering = this->hidden->mastering;
+    IXAudio2 *ixa2 = this->hidden->ixa2;
+    IXAudio2SourceVoice *source = this->hidden->source;
+    IXAudio2MasteringVoice *mastering = this->hidden->mastering;
 
-        if (source != NULL) {
-            IXAudio2SourceVoice_Stop(source, 0, XAUDIO2_COMMIT_NOW);
-            IXAudio2SourceVoice_FlushSourceBuffers(source);
-            IXAudio2SourceVoice_DestroyVoice(source);
-        }
-        if (ixa2 != NULL) {
-            IXAudio2_StopEngine(ixa2);
-        }
-        if (mastering != NULL) {
-            IXAudio2MasteringVoice_DestroyVoice(mastering);
-        }
-        if (ixa2 != NULL) {
-            IXAudio2_Release(ixa2);
-        }
-        SDL_free(this->hidden->mixbuf);
-        if (this->hidden->semaphore != NULL) {
-            SDL_DestroySemaphore(this->hidden->semaphore);
-        }
-
-        SDL_free(this->hidden);
-        this->hidden = NULL;
+    if (source != NULL) {
+        IXAudio2SourceVoice_Stop(source, 0, XAUDIO2_COMMIT_NOW);
+        IXAudio2SourceVoice_FlushSourceBuffers(source);
+        IXAudio2SourceVoice_DestroyVoice(source);
     }
+    if (ixa2 != NULL) {
+        IXAudio2_StopEngine(ixa2);
+    }
+    if (mastering != NULL) {
+        IXAudio2MasteringVoice_DestroyVoice(mastering);
+    }
+    if (ixa2 != NULL) {
+        IXAudio2_Release(ixa2);
+    }
+    if (this->hidden->semaphore != NULL) {
+        SDL_DestroySemaphore(this->hidden->semaphore);
+    }
+
+    SDL_free(this->hidden->mixbuf);
+    SDL_free(this->hidden);
 }
 
 static int
@@ -348,12 +328,11 @@ XAUDIO2_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         IXAudio2_Release(ixa2);
         return SDL_OutOfMemory();
     }
-    SDL_memset(this->hidden, 0, (sizeof *this->hidden));
+    SDL_zerop(this->hidden);
 
     this->hidden->ixa2 = ixa2;
     this->hidden->semaphore = SDL_CreateSemaphore(1);
     if (this->hidden->semaphore == NULL) {
-        XAUDIO2_CloseDevice(this);
         return SDL_SetError("XAudio2: CreateSemaphore() failed!");
     }
 
@@ -371,7 +350,6 @@ XAUDIO2_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
     }
 
     if (!valid_format) {
-        XAUDIO2_CloseDevice(this);
         return SDL_SetError("XAudio2: Unsupported audio format");
     }
 
@@ -382,11 +360,10 @@ XAUDIO2_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
     this->hidden->mixlen = this->spec.size;
     this->hidden->mixbuf = (Uint8 *) SDL_malloc(2 * this->hidden->mixlen);
     if (this->hidden->mixbuf == NULL) {
-        XAUDIO2_CloseDevice(this);
         return SDL_OutOfMemory();
     }
     this->hidden->nextbuf = this->hidden->mixbuf;
-    SDL_memset(this->hidden->mixbuf, 0, 2 * this->hidden->mixlen);
+    SDL_memset(this->hidden->mixbuf, this->spec.silence, 2 * this->hidden->mixlen);
 
     /* We use XAUDIO2_DEFAULT_CHANNELS instead of this->spec.channels. On
        Xbox360, this means 5.1 output, but on Windows, it means "figure out
@@ -404,7 +381,6 @@ XAUDIO2_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
                                            this->spec.freq, 0, devId, NULL);
 #endif
     if (result != S_OK) {
-        XAUDIO2_CloseDevice(this);
         return SDL_SetError("XAudio2: Couldn't create mastering voice");
     }
 
@@ -439,7 +415,6 @@ XAUDIO2_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
 
 #endif
     if (result != S_OK) {
-        XAUDIO2_CloseDevice(this);
         return SDL_SetError("XAudio2: Couldn't create source voice");
     }
     this->hidden->source = source;
@@ -447,13 +422,11 @@ XAUDIO2_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
     /* Start everything playing! */
     result = IXAudio2_StartEngine(ixa2);
     if (result != S_OK) {
-        XAUDIO2_CloseDevice(this);
         return SDL_SetError("XAudio2: Couldn't start engine");
     }
 
     result = IXAudio2SourceVoice_Start(source, 0, XAUDIO2_COMMIT_NOW);
     if (result != S_OK) {
-        XAUDIO2_CloseDevice(this);
         return SDL_SetError("XAudio2: Couldn't start source voice");
     }
 
@@ -480,6 +453,7 @@ XAUDIO2_Init(SDL_AudioDriverImpl * impl)
 #else
     /* XAudio2Create() is a macro that uses COM; we don't load the .dll */
     IXAudio2 *ixa2 = NULL;
+    HRESULT hr = S_FALSE;
 #if defined(__WIN32__)
     // TODO, WinRT: Investigate using CoInitializeEx here
     if (FAILED(WIN_CoInitialize())) {
@@ -488,11 +462,12 @@ XAUDIO2_Init(SDL_AudioDriverImpl * impl)
     }
 #endif
 
-    if (XAudio2Create(&ixa2, 0, XAUDIO2_DEFAULT_PROCESSOR) != S_OK) {
+    hr = XAudio2Create( &ixa2, 0, XAUDIO2_DEFAULT_PROCESSOR );
+    if ( hr != S_OK) {
 #if defined(__WIN32__)
         WIN_CoUninitialize();
 #endif
-        SDL_SetError("XAudio2: XAudio2Create() failed at initialization");
+        SDL_SetError("XAudio2: XAudio2Create() failed at initialization: 0x%.8x", hr );
         return 0;  /* not available. */
     }
     IXAudio2_Release(ixa2);
@@ -502,7 +477,7 @@ XAUDIO2_Init(SDL_AudioDriverImpl * impl)
     impl->OpenDevice = XAUDIO2_OpenDevice;
     impl->PlayDevice = XAUDIO2_PlayDevice;
     impl->WaitDevice = XAUDIO2_WaitDevice;
-    impl->WaitDone = XAUDIO2_WaitDone;
+    impl->PrepareToClose = XAUDIO2_PrepareToClose;
     impl->GetDeviceBuf = XAUDIO2_GetDeviceBuf;
     impl->CloseDevice = XAUDIO2_CloseDevice;
     impl->Deinitialize = XAUDIO2_Deinitialize;

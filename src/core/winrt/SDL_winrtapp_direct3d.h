@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -74,8 +74,14 @@ protected:
     void OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
     void OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CharacterReceivedEventArgs^ args);
 
-#if WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP
+#if NTDDI_VERSION >= NTDDI_WIN10
+    void OnBackButtonPressed(Platform::Object^ sender, Windows::UI::Core::BackRequestedEventArgs^ args);
+#elif WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP
     void OnBackButtonPressed(Platform::Object^ sender, Windows::Phone::UI::Input::BackPressedEventArgs^ args);
+#endif
+
+#if NTDDI_VERSION >= NTDDI_WIN10
+    void OnGamepadAdded(Platform::Object ^sender, Windows::Gaming::Input::Gamepad ^gamepad);
 #endif
 
 private:

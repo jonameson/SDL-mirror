@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -175,6 +175,8 @@ X11_CreateDevice(int devindex)
     }
     device->driverdata = data;
 
+    data->global_mouse_changed = SDL_TRUE;
+
     /* FIXME: Do we need this?
        if ( (SDL_strncmp(X11_XDisplayName(display), ":", 1) == 0) ||
        (SDL_strncmp(X11_XDisplayName(display), "unix:", 5) == 0) ) {
@@ -214,8 +216,10 @@ X11_CreateDevice(int devindex)
     /* Set the function pointers */
     device->VideoInit = X11_VideoInit;
     device->VideoQuit = X11_VideoQuit;
+    device->ResetTouch = X11_ResetTouch;
     device->GetDisplayModes = X11_GetDisplayModes;
     device->GetDisplayBounds = X11_GetDisplayBounds;
+    device->GetDisplayUsableBounds = X11_GetDisplayUsableBounds;
     device->GetDisplayDPI = X11_GetDisplayDPI;
     device->SetDisplayMode = X11_SetDisplayMode;
     device->SuspendScreenSaver = X11_SuspendScreenSaver;
@@ -229,6 +233,10 @@ X11_CreateDevice(int devindex)
     device->SetWindowSize = X11_SetWindowSize;
     device->SetWindowMinimumSize = X11_SetWindowMinimumSize;
     device->SetWindowMaximumSize = X11_SetWindowMaximumSize;
+    device->GetWindowBordersSize = X11_GetWindowBordersSize;
+    device->SetWindowOpacity = X11_SetWindowOpacity;
+    device->SetWindowModalFor = X11_SetWindowModalFor;
+    device->SetWindowInputFocus = X11_SetWindowInputFocus;
     device->ShowWindow = X11_ShowWindow;
     device->HideWindow = X11_HideWindow;
     device->RaiseWindow = X11_RaiseWindow;
@@ -236,6 +244,7 @@ X11_CreateDevice(int devindex)
     device->MinimizeWindow = X11_MinimizeWindow;
     device->RestoreWindow = X11_RestoreWindow;
     device->SetWindowBordered = X11_SetWindowBordered;
+    device->SetWindowResizable = X11_SetWindowResizable;
     device->SetWindowFullscreen = X11_SetWindowFullscreen;
     device->SetWindowGammaRamp = X11_SetWindowGammaRamp;
     device->SetWindowGrab = X11_SetWindowGrab;
@@ -278,7 +287,7 @@ X11_CreateDevice(int devindex)
     device->StartTextInput = X11_StartTextInput;
     device->StopTextInput = X11_StopTextInput;
     device->SetTextInputRect = X11_SetTextInputRect;
-    
+
     device->free = X11_DeleteDevice;
 
     return device;
@@ -373,31 +382,33 @@ X11_VideoInit(_THIS)
     /* Get the process PID to be associated to the window */
     data->pid = getpid();
 
-    /* Open a connection to the X input manager */
-#ifdef X_HAVE_UTF8_STRING
-    if (SDL_X11_HAVE_UTF8) {
-        data->im =
-            X11_XOpenIM(data->display, NULL, data->classname, data->classname);
-    }
-#endif
+    /* I have no idea how random this actually is, or has to be. */
+    data->window_group = (XID) (((size_t) data->pid) ^ ((size_t) _this));
 
     /* Look up some useful Atoms */
 #define GET_ATOM(X) data->X = X11_XInternAtom(data->display, #X, False)
     GET_ATOM(WM_PROTOCOLS);
     GET_ATOM(WM_DELETE_WINDOW);
+    GET_ATOM(WM_TAKE_FOCUS);
     GET_ATOM(_NET_WM_STATE);
     GET_ATOM(_NET_WM_STATE_HIDDEN);
     GET_ATOM(_NET_WM_STATE_FOCUSED);
     GET_ATOM(_NET_WM_STATE_MAXIMIZED_VERT);
     GET_ATOM(_NET_WM_STATE_MAXIMIZED_HORZ);
     GET_ATOM(_NET_WM_STATE_FULLSCREEN);
+    GET_ATOM(_NET_WM_STATE_ABOVE);
+    GET_ATOM(_NET_WM_STATE_SKIP_TASKBAR);
+    GET_ATOM(_NET_WM_STATE_SKIP_PAGER);
     GET_ATOM(_NET_WM_ALLOWED_ACTIONS);
     GET_ATOM(_NET_WM_ACTION_FULLSCREEN);
     GET_ATOM(_NET_WM_NAME);
     GET_ATOM(_NET_WM_ICON_NAME);
     GET_ATOM(_NET_WM_ICON);
     GET_ATOM(_NET_WM_PING);
+    GET_ATOM(_NET_WM_WINDOW_OPACITY);
+    GET_ATOM(_NET_WM_USER_TIME);
     GET_ATOM(_NET_ACTIVE_WINDOW);
+    GET_ATOM(_NET_FRAME_EXTENTS);
     GET_ATOM(UTF8_STRING);
     GET_ATOM(PRIMARY);
     GET_ATOM(XdndEnter);

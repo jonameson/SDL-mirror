@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -71,6 +71,10 @@ int main(int argc,char** argv)
 
     num_pictures = argc - 1;
     pictures = (LoadedPicture *)SDL_malloc(sizeof(LoadedPicture)*num_pictures);
+    if (!pictures) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not allocate memory.");
+        exit(1);
+    }
     for(i=0;i<num_pictures;i++)
         pictures[i].surface = NULL;
     for(i=0;i<num_pictures;i++) {

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -102,6 +102,10 @@ WIN_InitKeyboard(_THIS)
     SDL_SetScancodeName(SDL_SCANCODE_APPLICATION, "Menu");
     SDL_SetScancodeName(SDL_SCANCODE_LGUI, "Left Windows");
     SDL_SetScancodeName(SDL_SCANCODE_RGUI, "Right Windows");
+
+    /* Are system caps/num/scroll lock active? Set our state to match. */
+    SDL_ToggleModState(KMOD_CAPS, (GetKeyState(VK_CAPITAL) & 0x0001) != 0);
+    SDL_ToggleModState(KMOD_NUM, (GetKeyState(VK_NUMLOCK) & 0x0001) != 0);
 }
 
 void
@@ -154,10 +158,46 @@ WIN_QuitKeyboard(_THIS)
 }
 
 void
+WIN_ResetDeadKeys()
+{
+    /*
+    if a deadkey has been typed, but not the next character (which the deadkey might modify), 
+    this tries to undo the effect pressing the deadkey.
+    see: http://archives.miloush.net/michkap/archive/2006/09/10/748775.html
+    */
+    BYTE keyboardState[256];
+    WCHAR buffer[16];
+    int keycode, scancode, result, i;
+
+    GetKeyboardState(keyboardState);
+
+    keycode = VK_SPACE;
+    scancode = MapVirtualKey(keycode, MAPVK_VK_TO_VSC);
+    if (scancode == 0) {
+        /* the keyboard doesn't have this key */
+        return;
+    }
+
+    for (i = 0; i < 5; i++) {
+        result = ToUnicode(keycode, scancode, keyboardState, (LPWSTR)buffer, 16, 0);
+        if (result > 0) {
+            /* success */
+            return;
+        }
+    }
+}
+
+void
 WIN_StartTextInput(_THIS)
 {
 #ifndef SDL_DISABLE_WINDOWS_IME
-    SDL_Window *window = SDL_GetKeyboardFocus();
+    SDL_Window *window;
+#endif
+
+    WIN_ResetDeadKeys();
+
+#ifndef SDL_DISABLE_WINDOWS_IME
+    window = SDL_GetKeyboardFocus();
     if (window) {
         HWND hwnd = ((SDL_WindowData *) window->driverdata)->hwnd;
         SDL_VideoData *videodata = (SDL_VideoData *)_this->driverdata;
@@ -172,7 +212,13 @@ void
 WIN_StopTextInput(_THIS)
 {
 #ifndef SDL_DISABLE_WINDOWS_IME
-    SDL_Window *window = SDL_GetKeyboardFocus();
+    SDL_Window *window;
+#endif
+
+    WIN_ResetDeadKeys();
+
+#ifndef SDL_DISABLE_WINDOWS_IME
+    window = SDL_GetKeyboardFocus();
     if (window) {
         HWND hwnd = ((SDL_WindowData *) window->driverdata)->hwnd;
         SDL_VideoData *videodata = (SDL_VideoData *)_this->driverdata;
@@ -284,9 +330,6 @@ static void IME_SetupAPI(SDL_VideoData *videodata);
 static DWORD IME_GetId(SDL_VideoData *videodata, UINT uIndex);
 static void IME_SendEditingEvent(SDL_VideoData *videodata);
 static void IME_DestroyTextures(SDL_VideoData *videodata);
-
-#define SDL_IsEqualIID(riid1, riid2) SDL_IsEqualGUID(riid1, riid2)
-#define SDL_IsEqualGUID(rguid1, rguid2) (!SDL_memcmp(rguid1, rguid2, sizeof(GUID)))
 
 static SDL_bool UILess_SetupSinks(SDL_VideoData *videodata);
 static void UILess_ReleaseSinks(SDL_VideoData *videodata);
@@ -990,7 +1033,7 @@ STDMETHODIMP_(ULONG) TSFSink_AddRef(TSFSink *sink)
     return ++sink->refcount;
 }
 
-STDMETHODIMP_(ULONG)TSFSink_Release(TSFSink *sink)
+STDMETHODIMP_(ULONG) TSFSink_Release(TSFSink *sink)
 {
     --sink->refcount;
     if (sink->refcount == 0) {
@@ -1006,9 +1049,9 @@ STDMETHODIMP UIElementSink_QueryInterface(TSFSink *sink, REFIID riid, PVOID *ppv
         return E_INVALIDARG;
 
     *ppv = 0;
-    if (SDL_IsEqualIID(riid, &IID_IUnknown))
+    if (WIN_IsEqualIID(riid, &IID_IUnknown))
         *ppv = (IUnknown *)sink;
-    else if (SDL_IsEqualIID(riid, &IID_ITfUIElementSink))
+    else if (WIN_IsEqualIID(riid, &IID_ITfUIElementSink))
         *ppv = (ITfUIElementSink *)sink;
 
     if (*ppv) {
@@ -1112,9 +1155,9 @@ STDMETHODIMP IPPASink_QueryInterface(TSFSink *sink, REFIID riid, PVOID *ppv)
         return E_INVALIDARG;
 
     *ppv = 0;
-    if (SDL_IsEqualIID(riid, &IID_IUnknown))
+    if (WIN_IsEqualIID(riid, &IID_IUnknown))
         *ppv = (IUnknown *)sink;
-    else if (SDL_IsEqualIID(riid, &IID_ITfInputProcessorProfileActivationSink))
+    else if (WIN_IsEqualIID(riid, &IID_ITfInputProcessorProfileActivationSink))
         *ppv = (ITfInputProcessorProfileActivationSink *)sink;
 
     if (*ppv) {
@@ -1128,8 +1171,8 @@ STDMETHODIMP IPPASink_OnActivated(TSFSink *sink, DWORD dwProfileType, LANGID lan
 {
     static const GUID TF_PROFILE_DAYI = { 0x037B2C25, 0x480C, 0x4D7F, { 0xB0, 0x27, 0xD6, 0xCA, 0x6B, 0x69, 0x78, 0x8A } };
     SDL_VideoData *videodata = (SDL_VideoData *)sink->data;
-    videodata->ime_candlistindexbase = SDL_IsEqualGUID(&TF_PROFILE_DAYI, guidProfile) ? 0 : 1;
-    if (SDL_IsEqualIID(catid, &GUID_TFCAT_TIP_KEYBOARD) && (dwFlags & TF_IPSINK_FLAG_ACTIVE))
+    videodata->ime_candlistindexbase = WIN_IsEqualGUID(&TF_PROFILE_DAYI, guidProfile) ? 0 : 1;
+    if (WIN_IsEqualIID(catid, &GUID_TFCAT_TIP_KEYBOARD) && (dwFlags & TF_IPSINK_FLAG_ACTIVE))
         IME_InputLangChanged((SDL_VideoData *)sink->data);
 
     IME_HideCandidateList(videodata);
