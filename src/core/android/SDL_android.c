@@ -222,38 +222,38 @@ JNIEXPORT void JNICALL SDL_Android_Init(JNIEnv* mEnv, jclass cls)
     midGetNativeSurface = NULL;
     midPollInputDevices = NULL;
     
-    midAudioInit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                              "audioInit", "(IZZI)I");
+    midAudioOpen = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                              "audioOpen", "(IZZI)I");
     midAudioWriteShortBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                                           "audioWriteShortBuffer", "([S)V");
     midAudioWriteByteBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                                          "audioWriteByteBuffer", "([B)V");
-    midAudioQuit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                              "audioQuit", "()V");
+    midAudioClose = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                              "audioClose", "()V");
     
     bHasNewData = SDL_FALSE;
     
-    if (!midAudioInit || !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioQuit) {
+    if (!midAudioOpen || !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioClose) {
         __android_log_print(ANDROID_LOG_WARN, "SDL", "SDL: Couldn't locate Java callbacks, check that they're named and typed correctly");
     }
 #else
     midGetNativeSurface = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                 "getNativeSurface","()Landroid/view/Surface;");
-    midAudioInit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "audioInit", "(IZZI)I");
+    midAudioOpen = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                "audioOpen", "(IZZI)I");
     midAudioWriteShortBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                                           "audioWriteShortBuffer", "([S)V");
     midAudioWriteByteBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                 "audioWriteByteBuffer", "([B)V");
-    midAudioQuit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "audioQuit", "()V");
+    midAudioClose = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
+                                "audioClose", "()V");
     midPollInputDevices = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                                      "pollInputDevices", "()V");
     
     bHasNewData = SDL_FALSE;
 
-    if (!midGetNativeSurface || !midAudioInit ||
-       !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioQuit || !midPollInputDevices) {
+    if (!midGetNativeSurface || !midAudioOpen ||
+       !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioClose || !midPollInputDevices) {
         __android_log_print(ANDROID_LOG_WARN, "SDL", "SDL: Couldn't locate Java callbacks, check that they're named and typed correctly");
     }
 #endif
