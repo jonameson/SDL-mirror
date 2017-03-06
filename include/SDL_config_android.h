@@ -179,4 +179,6 @@
 /* Enable the filesystem driver */
 #define SDL_FILESYSTEM_ANDROID   1
 
+#endif // ANDROID_MINIMAL_BUILD_ENABLED
+
 #endif /* SDL_config_android_h_ */
