@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,8 +19,9 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef _SDL_config_iphoneos_h
-#define _SDL_config_iphoneos_h
+#ifndef SDL_config_iphoneos_h_
+#define SDL_config_iphoneos_h_
+#define SDL_config_h_
 
 #include "SDL_platform.h"
 
@@ -116,14 +117,10 @@
 #define SDL_HAPTIC_DUMMY 1
 
 /* Enable MFi joystick support */
-#define SDL_JOYSTICK_MFI 1
+#define SDL_JOYSTICK_MFI 0
 
 /* Enable Unix style SO loading */
-/* Technically this works, but violates the iOS dev agreement prior to iOS 8 */
-/* #define SDL_LOADSO_DLOPEN 1 */
-
-/* Enable the stub shared object loader (src/loadso/dummy/\*.c) */
-#define SDL_LOADSO_DISABLED 1
+#define SDL_LOADSO_DLOPEN 1
 
 /* Enable various threading systems */
 #define SDL_THREAD_PTHREAD  1
@@ -133,23 +130,23 @@
 #define SDL_TIMER_UNIX  1
 
 /* Supported video drivers */
-#define SDL_VIDEO_DRIVER_UIKIT  1
-#define SDL_VIDEO_DRIVER_DUMMY  1
+#define SDL_VIDEO_DRIVER_UIKIT  0
+#define SDL_VIDEO_DRIVER_DUMMY  0
 
 /* enable OpenGL ES */
-#define SDL_VIDEO_OPENGL_ES2 1
-#define SDL_VIDEO_OPENGL_ES 1
-#define SDL_VIDEO_RENDER_OGL_ES 1
-#define SDL_VIDEO_RENDER_OGL_ES2    1
+#define SDL_VIDEO_OPENGL_ES2 0
+#define SDL_VIDEO_OPENGL_ES 0
+#define SDL_VIDEO_RENDER_OGL_ES 0
+#define SDL_VIDEO_RENDER_OGL_ES2 0
 
 /* Enable system power support */
-#define SDL_POWER_UIKIT 1
+#define SDL_POWER_UIKIT 0
 
 /* enable iPhone keyboard support */
 #define SDL_IPHONE_KEYBOARD 1
 
 /* enable iOS extended launch screen */
-#define SDL_IPHONE_LAUNCHSCREEN 1
+#define SDL_IPHONE_LAUNCHSCREEN 0
 
 /* Set max recognized G-force from accelerometer
    See src/joystick/uikit/SDL_sysjoystick.m for notes on why this is needed
@@ -159,4 +156,4 @@
 /* enable filesystem support */
 #define SDL_FILESYSTEM_COCOA   1
 
-#endif /* _SDL_config_iphoneos_h */
+#endif /* SDL_config_iphoneos_h_ */

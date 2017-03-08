@@ -1,5 +1,5 @@
 /*
-  Copyright (r) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,7 +20,8 @@
 
 #include "SDL_test_common.h"
 
-#if defined(__IPHONEOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__NACL__)
+#if defined(__IPHONEOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__NACL__) \
+    || defined(__WINDOWS__) || defined(__LINUX__)
 #define HAVE_OPENGLES2
 #endif
 
@@ -61,7 +62,7 @@ static int LoadContext(GLES2_Context * data)
             return SDL_SetError("Couldn't load GLES2 function %s: %s\n", #func, SDL_GetError()); \
         } \
     } while ( 0 );
-#endif /* _SDL_NOGETPROCADDR_ */
+#endif /* __SDL_NOGETPROCADDR__ */
 
 #include "../src/render/opengles2/SDL_gles2funcs.h"
 #undef SDL_PROC
@@ -546,7 +547,7 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    context = SDL_calloc(state->num_windows, sizeof(context));
+    context = (SDL_GLContext *)SDL_calloc(state->num_windows, sizeof(context));
     if (context == NULL) {
         SDL_Log("Out of memory!\n");
         quit(2);
@@ -640,7 +641,7 @@ main(int argc, char *argv[])
         }
     }
 
-    datas = SDL_calloc(state->num_windows, sizeof(shader_data));
+    datas = (shader_data *)SDL_calloc(state->num_windows, sizeof(shader_data));
 
     /* Set rendering settings for each context */
     for (i = 0; i < state->num_windows; ++i) {
