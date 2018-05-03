@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -71,6 +71,13 @@ typedef struct {
     Uint8 data[16];
 } SDL_JoystickGUID;
 
+/**
+ * This is a unique ID for a joystick for the time it is connected to the system,
+ * and is never reused for the lifetime of the application. If the joystick is
+ * disconnected and reconnected, it will get a new ID.
+ *
+ * The ID value starts at 0 and increments from there. The value -1 is an invalid ID.
+ */
 typedef Sint32 SDL_JoystickID;
 
 typedef enum
@@ -99,6 +106,20 @@ typedef enum
 } SDL_JoystickPowerLevel;
 
 /* Function prototypes */
+
+/**
+ * Locking for multi-threaded access to the joystick API
+ *
+ * If you are using the joystick API or handling events from multiple threads
+ * you should use these locking functions to protect access to the joysticks.
+ *
+ * In particular, you are guaranteed that the joystick list won't change, so
+ * the API functions that take a joystick index will be valid, and joystick
+ * and game controller events will not be delivered.
+ */
+extern DECLSPEC void SDLCALL SDL_LockJoysticks(void);
+extern DECLSPEC void SDLCALL SDL_UnlockJoysticks(void);
+
 /**
  *  Count the number of joysticks attached to the system right now
  */
@@ -143,6 +164,13 @@ extern DECLSPEC Uint16 SDLCALL SDL_JoystickGetDeviceProductVersion(int device_in
  *  This can be called before any joysticks are opened.
  */
 extern DECLSPEC SDL_JoystickType SDLCALL SDL_JoystickGetDeviceType(int device_index);
+
+/**
+ *  Get the instance ID of a joystick.
+ *  This can be called before any joysticks are opened.
+ *  If the index is out of range, this function will return -1.
+ */
+extern DECLSPEC SDL_JoystickID SDLCALL SDL_JoystickGetDeviceInstanceID(int device_index);
 
 /**
  *  Open a joystick for use.
