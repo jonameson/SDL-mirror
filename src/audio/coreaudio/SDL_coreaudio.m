@@ -340,6 +340,8 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
             if (hint) {
                 if (SDL_strcasecmp(hint, "AVAudioSessionCategoryAmbient") == 0) {
                     category = AVAudioSessionCategoryAmbient;
+                } else if (SDL_strcasecmp(hint, "AVAudioSessionCategoryPlayAndRecord") == 0) {
+                    category = AVAudioSessionCategoryPlayAndRecord;
                 } else if (SDL_strcasecmp(hint, "AVAudioSessionCategorySoloAmbient") == 0) {
                     category = AVAudioSessionCategorySoloAmbient;
                 } else if (SDL_strcasecmp(hint, "AVAudioSessionCategoryPlayback") == 0 ||
