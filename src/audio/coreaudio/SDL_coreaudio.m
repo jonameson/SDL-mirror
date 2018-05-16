@@ -350,12 +350,23 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
                 }
             }
         }
-
-        if (![session setCategory:category error:&err]) {
-            NSString *desc = err.description;
-            SDL_SetError("Could not set Audio Session category: %s", desc.UTF8String);
-            return NO;
+        
+        if (AVAudioSessionCategoryPlayAndRecord == category) {
+            // This might help with audio not routing correctly on some iPhone devices.
+            // Also, likely help with volume level reports.
+            if (![session setCategory:category withOptions:AVAudioSessionCategoryOptionDefaultToSpeaker error:&err]) {
+                NSString *desc = err.description;
+                SDL_SetError("Could not set Audio Session category: %s", desc.UTF8String);
+                return NO;
+            }
+        } else {
+            if (![session setCategory:category error:&err]) {
+                NSString *desc = err.description;
+                SDL_SetError("Could not set Audio Session category: %s", desc.UTF8String);
+                return NO;
+            }
         }
+        
 
         if (open_playback_devices + open_capture_devices == 1) {
             if (![session setActive:YES error:&err]) {
