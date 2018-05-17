@@ -753,12 +753,14 @@ COREAUDIO_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         return -1;
     }
 
+    // JONA: This is causing issues with FlipaClip since iPhone 8 and other devices
+    // don't like 44100 for some odd reason!
     /* Stop CoreAudio from doing expensive audio rate conversion */
-    @autoreleasepool {
-        AVAudioSession* session = [AVAudioSession sharedInstance];
-        [session setPreferredSampleRate:this->spec.freq error:nil];
-        this->spec.freq = (int)session.sampleRate;
-    }
+//    @autoreleasepool {
+//        AVAudioSession* session = [AVAudioSession sharedInstance];
+//        [session setPreferredSampleRate:this->spec.freq error:nil];
+//        this->spec.freq = (int)session.sampleRate;
+//    }
     
 #endif
 
