@@ -354,7 +354,9 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
         if (AVAudioSessionCategoryPlayAndRecord == category) {
             // This might help with audio not routing correctly on some iPhone devices.
             // Also, likely help with volume level reports.
-            if (![session setCategory:category withOptions:AVAudioSessionCategoryOptionDefaultToSpeaker error:&err]) {
+            if (![session setCategory:category
+                          withOptions:AVAudioSessionCategoryOptionDefaultToSpeaker|AVAudioSessionCategoryOptionAllowBluetoothA2DP
+                                error:&err]) {
                 NSString *desc = err.description;
                 SDL_SetError("Could not set Audio Session category: %s", desc.UTF8String);
                 return NO;
