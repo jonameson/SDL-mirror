@@ -330,7 +330,7 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
         /* Set category to ambient by default so that other music continues playing. */
         NSString *category = AVAudioSessionCategoryAmbient;
         NSError *err = nil;
-
+        
         if (open_playback_devices && open_capture_devices) {
             category = AVAudioSessionCategoryPlayAndRecord;
         } else if (open_capture_devices) {
@@ -369,12 +369,15 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
             }
         }
         
-
         if (open_playback_devices + open_capture_devices == 1) {
-            if (![session setActive:YES error:&err]) {
-                NSString *desc = err.description;
-                SDL_SetError("Could not activate Audio Session: %s", desc.UTF8String);
-                return NO;
+            if (open) {
+                if (![session setActive:YES error:&err]) {
+                    NSString *desc = err.description;
+                    SDL_SetError("Could not activate Audio Session: %s", desc.UTF8String);
+                    return NO;
+                }
+            } else {
+                [session setActive:NO error:nil];
             }
         } else if (!open_playback_devices && !open_capture_devices) {
             [session setActive:NO error:nil];
@@ -383,7 +386,7 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
         if (open) {
             SDLInterruptionListener *listener = [SDLInterruptionListener new];
             listener.device = this;
-
+            
             [center addObserver:listener
                        selector:@selector(audioSessionInterruption:)
                            name:AVAudioSessionInterruptionNotification
@@ -407,14 +410,14 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
             if (this->hidden->interruption_listener != NULL) {
                 SDLInterruptionListener *listener = nil;
                 listener = (SDLInterruptionListener *) CFBridgingRelease(this->hidden->interruption_listener);
+                [center removeObserver:listener];
                 @synchronized (listener) {
                     listener.device = NULL;
                 }
-                [center removeObserver:listener];
             }
         }
     }
-
+    
     return YES;
 }
 #endif
