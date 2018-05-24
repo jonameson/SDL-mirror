@@ -27,9 +27,8 @@ extern "C" {
 /* *INDENT-ON* */
 #endif
 
-#include <EGL/eglplatform.h>
 #include <android/native_window_jni.h>
-
+  
 #include "SDL_rect.h"
 
 /* Interface from the SDL library into the Android Java activity */
@@ -98,7 +97,7 @@ int Android_JNI_SendMessage(int command, int param);
 /* Init */
 JNIEXPORT void JNICALL SDL_Android_Init(JNIEnv* mEnv, jclass cls);
 
-/* MessageBox */
+// /* MessageBox */
 #include "SDL_messagebox.h"
 int Android_JNI_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid);
 

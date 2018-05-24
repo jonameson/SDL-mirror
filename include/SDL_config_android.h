@@ -126,81 +126,67 @@
 
 #define SIZEOF_VOIDP 4
 
-#ifdef ANDROID_MINIMAL_BUILD_ENABLED
-
 /* Enable various audio drivers */
 #define SDL_AUDIO_DRIVER_ANDROID    1
 #define SDL_AUDIO_DRIVER_DUMMY  1
 
-/* Enable the stub joystick driver (src/joystick/dummy/\*.c) */
-#define SDL_JOYSTICK_DISABLED   1
+#ifdef SDL_AUDIO_ONLY
+  /* Enable various input drivers */
+  #define SDL_HAPTIC_DUMMY 1
+  #define SDL_JOYSTICK_DUMMY 1
 
-/* Enable the stub haptic driver (src/haptic/dummy/\*.c) */
-#define SDL_HAPTIC_DISABLED 1
+  /* Enable various shared object loading systems */
+  // #define SDL_LOADSO_DLOPEN   1
+  #define SDL_LOADSO_DISABLED 1
 
-/* Enable various shared object loading systems */
-#define SDL_LOADSO_DLOPEN   1
+  /* Enable various threading systems */
+  #define SDL_THREAD_PTHREAD  1
+  #define SDL_THREAD_PTHREAD_RECURSIVE_MUTEX  1
 
-/* Enable various threading systems */
-#define SDL_THREAD_PTHREAD  1
-#define SDL_THREAD_PTHREAD_RECURSIVE_MUTEX  1
+  /* Enable various timer systems */
+  #define SDL_TIMER_UNIX  1
 
-/* Enable various timer systems */
-#define SDL_TIMER_UNIX  1
+  #define SDL_VIDEO_DISABLED 1
+  #define SDL_POWER_DISABLED 1
+  #define SDL_FILESYSTEM_DUMMY  1
+#else // SDL_AUDIO_ONLY
+  /* Enable various input drivers */
+  #define SDL_JOYSTICK_ANDROID    1
+  #define SDL_HAPTIC_ANDROID    1
 
-/* Enable the dummy video driver (src/video/dummy/\*.c) */
-#define SDL_VIDEO_DRIVER_DUMMY 1
+  /* Enable various shared object loading systems */
+  #define SDL_LOADSO_DLOPEN   1
 
-/* Disable system power */
-#define SDL_POWER_DISABLED 1
+  /* Enable various threading systems */
+  #define SDL_THREAD_PTHREAD  1
+  #define SDL_THREAD_PTHREAD_RECURSIVE_MUTEX  1
 
-/* Enable the dummy filesystem driver (src/filesystem/dummy/\*.c) */
-#define SDL_FILESYSTEM_DUMMY  1
+  /* Enable various timer systems */
+  #define SDL_TIMER_UNIX  1
 
-#else // ANDROID_MINIMAL_BUILD_ENABLED
+  /* Enable various video drivers */
+  #define SDL_VIDEO_DRIVER_ANDROID 1
 
-/* Enable various audio drivers */
-#define SDL_AUDIO_DRIVER_ANDROID    1
-#define SDL_AUDIO_DRIVER_DUMMY  1
+  /* Enable OpenGL ES */
+  #define SDL_VIDEO_OPENGL_ES 1
+  #define SDL_VIDEO_OPENGL_ES2 1
+  #define SDL_VIDEO_OPENGL_EGL 1
+  #define SDL_VIDEO_RENDER_OGL_ES 1
+  #define SDL_VIDEO_RENDER_OGL_ES2    1
 
-/* Enable various input drivers */
-#define SDL_JOYSTICK_ANDROID    1
-#define SDL_HAPTIC_ANDROID    1
+  /* Enable Vulkan support */
+  /* Android does not support Vulkan in native code using the "armeabi" ABI. */
+  #if defined(__ARM_ARCH) && __ARM_ARCH < 7
+  #define SDL_VIDEO_VULKAN 0
+  #else
+  #define SDL_VIDEO_VULKAN 1
+  #endif
 
-/* Enable various shared object loading systems */
-#define SDL_LOADSO_DLOPEN   1
+  /* Enable system power support */
+  #define SDL_POWER_ANDROID 1
 
-/* Enable various threading systems */
-#define SDL_THREAD_PTHREAD  1
-#define SDL_THREAD_PTHREAD_RECURSIVE_MUTEX  1
-
-/* Enable various timer systems */
-#define SDL_TIMER_UNIX  1
-
-/* Enable various video drivers */
-#define SDL_VIDEO_DRIVER_ANDROID 1
-
-/* Enable OpenGL ES */
-#define SDL_VIDEO_OPENGL_ES 1
-#define SDL_VIDEO_OPENGL_ES2 1
-#define SDL_VIDEO_OPENGL_EGL 1
-#define SDL_VIDEO_RENDER_OGL_ES 1
-#define SDL_VIDEO_RENDER_OGL_ES2    1
-
-/* Enable Vulkan support */
-/* Android does not support Vulkan in native code using the "armeabi" ABI. */
-#if defined(__ARM_ARCH) && __ARM_ARCH < 7
-#define SDL_VIDEO_VULKAN 0
-#else
-#define SDL_VIDEO_VULKAN 1
-#endif
-
-/* Enable system power support */
-#define SDL_POWER_ANDROID 1
-
-/* Enable the filesystem driver */
-#define SDL_FILESYSTEM_ANDROID   1
-
-#endif // ANDROID_MINIMAL_BUILD_ENABLED
+  /* Enable the filesystem driver */
+  #define SDL_FILESYSTEM_ANDROID   1
+#endif // SDL_AUDIO_ONLY
 
 #endif /* SDL_config_android_h_ */

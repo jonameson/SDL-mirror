@@ -282,8 +282,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
 
     return JNI_VERSION_1_4;
 }
-void checkJNIReady()
 
+void checkJNIReady()
 {
     if (!mActivityClass || !mAudioManagerClass || !mControllerManagerClass) {
         // We aren't fully initialized, let's just return.
@@ -302,25 +302,6 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv* mEnv, jclass c
 
     mActivityClass = (jclass)((*mEnv)->NewGlobalRef(mEnv, cls));
 
-#ifdef ANDROID_MINIMAL_BUILD_ENABLED
-    midGetNativeSurface = NULL;
-    midPollInputDevices = NULL;
-    
-    midAudioOpen = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                              "audioOpen", "(IZZI)I");
-    midAudioWriteShortBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                                          "audioWriteShortBuffer", "([S)V");
-    midAudioWriteByteBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                                         "audioWriteByteBuffer", "([B)V");
-    midAudioClose = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                              "audioClose", "()V");
-    
-    bHasNewData = SDL_FALSE;
-    
-    if (!midAudioOpen || !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioClose) {
-        __android_log_print(ANDROID_LOG_WARN, "SDL", "SDL: Couldn't locate Java callbacks, check that they're named and typed correctly");
-    }
-#else
     midGetNativeSurface = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                 "getNativeSurface","()Landroid/view/Surface;");
     midSetActivityTitle = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
@@ -524,8 +505,6 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeDropFile)(
     (*env)->ReleaseStringUTFChars(env, filename, path);
     SDL_SendDropComplete(NULL);
 }
-
-#ifdef SDL_VIDEO_DRIVER_ANDROID
 
 /* Resize */
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeResize)(
@@ -1869,9 +1848,9 @@ void Android_JNI_PollInputDevices(void)
 }
 
 void Android_JNI_PollHapticDevices(void)
-    (*env)->CallStaticVoidMethod(env, mControllerManagerClass, midPollHapticDevices);
 {
     JNIEnv *env = Android_JNI_GetEnv();
+    (*env)->CallStaticVoidMethod(env, mControllerManagerClass, midPollHapticDevices);
 }
 
 void Android_JNI_HapticRun(int device_id, int length)
